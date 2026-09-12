@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 //DAY1-TC2
 package com.selenium;
 
@@ -29,4 +30,37 @@ public class testCase2_Add_toCart {
 		js.executeScript("arguments[0].click()",product);
 	}
 
+=======
+//DAY1-TC2
+package Assessment;
+
+import java.time.Duration;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Keys;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class testCase2_Add_toCart {
+	public static void main(String[] args) throws InterruptedException {
+		//create a  driver object
+		WebDriver driver= new ChromeDriver();
+		//maximize the window
+		driver.manage().window().maximize();
+		//Use implicit wait 
+		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(15));
+		//navigate to the Myntra 
+		driver.get("https://www.myntra.com/");
+		driver.findElement(By.className("desktop-searchBar")).sendKeys("Shoes",Keys.ENTER);
+		//click add to wishlist
+		Thread.sleep(3000);
+		WebElement product = driver.findElement( By.xpath("(//span[contains(@class,'product-wishlist')])[1]"));		
+		
+		JavascriptExecutor js = (JavascriptExecutor)driver;
+		js.executeScript("arguments[0].click()",product);
+	}
+
+>>>>>>> d41f0e2ef0bb6a0e0a359b0120ef8ca4b8028748
 }
