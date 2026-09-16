@@ -3,134 +3,228 @@ package com.selenium;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
-import java.util.List;
 
+import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeDriver;
-import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.ui.Select;
+
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class Day6_TC1 {
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		//Loading the common configuration details from the properties file
-		FileInputStream propertyFile = new FileInputStream("src/main/Resources/DDT/data1.properties");
-		Properties propertiesData = new Properties();
-		propertiesData.load(propertyFile);
-		String browserName = propertiesData.getProperty("browser");
-		String applicationUrl = propertiesData.getProperty("url");
-		String loginUsername = propertiesData.getProperty("username");
-		String loginPassword = propertiesData.getProperty("pass");
-		
-		//Getting the employee and login details from the Excel sheet
-		FileInputStream excelFile = new FileInputStream("src/main/Resources/DDT/Data1.xlsx");
-		Workbook workbookData = WorkbookFactory.create(excelFile);
-		
-		String employeeFirstName = workbookData.getSheet("Sheet1").getRow(1).getCell(0).getStringCellValue();
-		String employeeLastName = workbookData.getSheet("Sheet1").getRow(1).getCell(1).getStringCellValue();
-		String pimUsername = workbookData.getSheet("Sheet1").getRow(1).getCell(2).getStringCellValue();
-		String employeeName = workbookData.getSheet("Sheet1").getRow(1).getCell(3).getStringCellValue();
-		String pimPassword = workbookData.getSheet("Sheet1").getRow(1).getCell(4).getStringCellValue();
-		
-		//Disabling the password manager warning popup
-		ChromeOptions chromeSettings = new ChromeOptions();
-		Map<String, Object> chromePreferences = new HashMap<>();
-		chromePreferences.put("profile.password_manager_leak_detection", false);
-		chromeSettings.setExperimentalOption("prefs", chromePreferences);
-		
-		WebDriver webDriver = null;
-		if(browserName.equals("chrome")) {
-			webDriver = new ChromeDriver();
-		}else if(browserName.equals("edge")) {
-			webDriver = new EdgeDriver();
-		}else if(browserName.equals("firefox")) {
-			webDriver = new FirefoxDriver();
+
+		// Reading data from properties file
+		FileInputStream f = new FileInputStream("src/main/Resources/DDT/data1.properties");
+		Properties p = new Properties();
+		p.load(f);
+
+		String browser = p.getProperty("browser");
+		String url = p.getProperty("url");
+		String un = p.getProperty("username");
+		String pw = p.getProperty("password");
+
+		System.out.println(browser);
+		System.out.println(url);
+		System.out.println(un);
+		System.out.println(pw);
+
+		// Reading data from Excel file
+		FileInputStream f1 = new FileInputStream("src/main/Resources/DDT/Data1.xlsx");
+		Workbook w = WorkbookFactory.create(f1);
+
+		DataFormatter formatter = new DataFormatter();
+
+		var sheet = w.getSheet("Sheet1");
+		var row = sheet.getRow(1);
+
+		String first_name = formatter.formatCellValue(row.getCell(0));
+		String middle_name = formatter.formatCellValue(row.getCell(1));
+		String last_name = formatter.formatCellValue(row.getCell(2));
+		String eid = formatter.formatCellValue(row.getCell(3));
+		String user_name = formatter.formatCellValue(row.getCell(4));
+		String password = formatter.formatCellValue(row.getCell(5));
+		String employee_name = formatter.formatCellValue(row.getCell(6));
+
+		String confirm_pw = password;
+
+		System.out.println(first_name);
+		System.out.println(middle_name);
+		System.out.println(last_name);
+		System.out.println(eid);
+		System.out.println(user_name);
+		System.out.println(password);
+		System.out.println(employee_name);
+
+		// Launching browser
+		WebDriver driver = null;
+
+		if (browser.equalsIgnoreCase("chrome")) {
+			driver = new ChromeDriver();
+		} else if (browser.equalsIgnoreCase("edge")) {
+			driver = new EdgeDriver();
+		} else {
+			System.out.println("Invalid browser name");
+			return;
 		}
-		
-		webDriver.manage().window().maximize();
-		webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(20));
-		webDriver.get(applicationUrl);
+
+		driver.manage().window().maximize();
+		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+
+		// Login
+		driver.get(url);
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.name("username"))).sendKeys(un);
+
+		driver.findElement(By.name("password")).sendKeys(pw);
+
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//button[@type='submit']"))).click();
+
+		// Adding employee in PIM
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.linkText("PIM"))).click();
+
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//button[@class='oxd-button oxd-button--medium oxd-button--secondary']")))
+				.click();
+
+		wait.until(ExpectedConditions.invisibilityOfElementLocated(
+				By.cssSelector(".oxd-form-loader")));
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.name("firstName"))).sendKeys(first_name);
+
+		driver.findElement(By.name("middleName")).sendKeys(middle_name);
+		driver.findElement(By.name("lastName")).sendKeys(last_name);
+
+		WebElement empid = wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.xpath("//label[text()='Employee Id']/ancestor::div[contains(@class,'oxd-input-group')]/descendant::input")));
+
+		empid.sendKeys(Keys.CONTROL, "a");
+		empid.sendKeys(Keys.BACK_SPACE);
+		empid.sendKeys(eid);
+
+		// Enabling login details
+		wait.until(ExpectedConditions.invisibilityOfElementLocated(
+				By.cssSelector(".oxd-form-loader")));
+
+		WebElement loginSwitch = wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//span[contains(@class,'oxd-switch-input')]")));
+
+		loginSwitch.click();
+
+		wait.until(ExpectedConditions.invisibilityOfElementLocated(
+				By.cssSelector(".oxd-form-loader")));
+
+		// Entering login details
+		wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.xpath("//label[text()='Username']/ancestor::div[contains(@class,'oxd-input-group')]//input")))
+				.sendKeys(user_name);
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.xpath("//div[contains(@class,'user-password-cell')]//input[@type='password']")))
+				.sendKeys(password);
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.xpath("//label[text()='Confirm Password']/ancestor::div[contains(@class,'oxd-input-group')]/descendant::input")))
+				.sendKeys(confirm_pw);
+
+		// Saving employee
+		wait.until(ExpectedConditions.invisibilityOfElementLocated(
+				By.cssSelector(".oxd-form-loader")));
+
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//button[text()=' Save ']"))).click();
+
+		wait.until(ExpectedConditions.invisibilityOfElementLocated(
+				By.cssSelector(".oxd-form-loader")));
+
+		// Searching employee in Admin
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.linkText("Admin"))).click();
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.xpath("//label[text()='Username']/ancestor::div[contains(@class,'oxd-input-group')]/descendant::input")))
+				.sendKeys(user_name);
+
+		// Selecting Admin role
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//label[text()='User Role']/ancestor::div[contains(@class,'oxd-input-group')]/descendant::div[contains(@class,'oxd-select-text')]")))
+				.click();
+
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//div[@role='option']//span[text()='Admin']")))
+				.click();
+
+		// Entering employee name
+		WebElement employeeName = wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.xpath("//input[@placeholder='Type for hints...']")));
+
+		employeeName.sendKeys(employee_name);
+
 		Thread.sleep(2000);
-		webDriver.findElement(By.cssSelector("[name='username']")).sendKeys(loginUsername);
-		webDriver.findElement(By.cssSelector("[name='password']")).sendKeys(loginPassword);
-		Thread.sleep(2000);
-		webDriver.findElement(By.cssSelector("[type='submit']")).submit();
-		
-		//Opening PIM, selecting Add and providing employee information
-		Thread.sleep(2000);
-		webDriver.findElement(By.xpath("//div[@class='oxd-sidepanel-body']/descendant::a[@href='/web/index.php/pim/viewPimModule']")).click();
-		Thread.sleep(1000);
-		webDriver.findElement(By.cssSelector("[class='oxd-button oxd-button--medium oxd-button--secondary']")).click();
-		Thread.sleep(8000);
-		webDriver.findElement(By.cssSelector("[name='firstName']")).sendKeys(employeeFirstName);
-		webDriver.findElement(By.cssSelector("[name='lastName']")).sendKeys(employeeLastName);
-		Thread.sleep(3000);
-		webDriver.findElement(By.xpath("//input[@type='checkbox']/following-sibling::span")).click();
-		
-		//Entering the login credentials and saving the employee record
-		Thread.sleep(3000);
-		Thread.sleep(1000);
-		webDriver.findElement(By.xpath("(//input[@type='password'])[1]")).sendKeys(pimPassword);
-		Thread.sleep(1000);
-		webDriver.findElement(By.xpath("(//input[@type='password'])[2]")).sendKeys(pimPassword);
-		Thread.sleep(1000);
-		webDriver.findElement(By.xpath("((//div[@class='oxd-form-row'])[2]/descendant::div[@class='oxd-input-group oxd-input-field-bottom-space']/descendant::input)[1]")).sendKeys(pimUsername);
-		Thread.sleep(2000);
-		webDriver.findElement(By.xpath("//button[text()=' Save ']")).submit();
-		
-		//Opening Admin and filtering the created user using role, employee and status
-		Thread.sleep(3000);
-		webDriver.findElement(By.xpath("//div[@class='oxd-sidepanel-body']/descendant::a[@href='/web/index.php/admin/viewAdminModule']")).click();
-		Thread.sleep(4000);
-		webDriver.findElement(By.xpath("(//div[@class='oxd-table-filter-area']/descendant::div[@class='oxd-grid-item oxd-grid-item--gutters'])[1]/descendant::input")).sendKeys(pimUsername);
-		Thread.sleep(2000);
-		webDriver.findElement(By.xpath("(//div[@class='oxd-select-wrapper']/descendant::i[@class='oxd-icon bi-caret-down-fill oxd-select-text--arrow'])")).click();
-		WebElement userRole = webDriver.findElement(By.xpath("//span[text()='ESS']"));
-		Actions roleAction = new Actions(webDriver);
-		Thread.sleep(2000);
-		roleAction.click(userRole).perform();
-		Thread.sleep(2000);
-		webDriver.findElement(By.xpath("//input[@placeholder=\"Type for hints...\"]")).sendKeys(employeeName);
-		Thread.sleep(2000);
-		WebElement employeeSuggestion = webDriver.findElement(By.xpath("//div[@role='listbox']"));
-		Actions employeeAction = new Actions(webDriver);
-		employeeAction.moveToElement(employeeSuggestion, 20, 10).click().perform();
-		Thread.sleep(2000);
-		webDriver.findElement(By.xpath("(//div[@class='oxd-select-wrapper']/descendant::i[@class='oxd-icon bi-caret-down-fill oxd-select-text--arrow'])[2]")).click();
-		WebElement accountStatus = webDriver.findElement(By.xpath("//span[text()='Enabled']"));
-		Actions statusAction = new Actions(webDriver);
-		Thread.sleep(2000);
-		statusAction.click(accountStatus).perform();
-		Thread.sleep(2000);
-		
-		webDriver.findElement(By.xpath("//button[text()=' Search ']")).submit();
-		
-		//Checking whether the newly created user record is available
-		Thread.sleep(2000);
-		WebElement foundRecord = webDriver.findElement(By.xpath("//span[text()='(1) Record Found']"));
-		if(foundRecord.isDisplayed()) {
-			System.out.println("Record Found Successfully");
-		}else {
-			System.out.println("Record Not found");
+
+		try {
+			wait.until(ExpectedConditions.elementToBeClickable(
+					By.xpath("//div[@role='option']"))).click();
+		} catch (Exception e) {
+			System.out.println("Employee suggestion was not displayed.");
 		}
-		
-		//Printing the details displayed for the matching record
-		Thread.sleep(1000);
-		List<WebElement> recordDetailsList = webDriver.findElements(By.xpath("(//div[@class='oxd-table-row oxd-table-row--with-border'])[2]/descendant::div[@role='cell']/descendant::div[text()]"));
-		System.out.println("-------------Record Details are--------------");
-		for(WebElement recordElement:recordDetailsList) {
-				System.out.println(recordElement.getText());
+
+		// Selecting Enabled status
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//label[text()='Status']/ancestor::div[contains(@class,'oxd-input-group')]/descendant::div[contains(@class,'oxd-select-text')]")))
+				.click();
+
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//div[@role='option']//span[text()='Enabled']")))
+				.click();
+
+		// Searching user
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//button[text()=' Search ']"))).click();
+
+		wait.until(ExpectedConditions.invisibilityOfElementLocated(
+				By.cssSelector(".oxd-form-loader")));
+
+		// Verifying user is present
+		boolean userPresent = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(
+				By.xpath("//div[@role='row'][.//div[@role='cell' and normalize-space()='"
+						+ user_name + "']]"))).size() > 0;
+
+		if (userPresent) {
+			System.out.println("PASS: User is present");
+		} else {
+			System.out.println("FAIL: User is not present");
 		}
+
+		// Logout
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//p[contains(@class,'oxd-userdropdown-name')]/ancestor::li[contains(@class,'oxd-userdropdown')]/descendant::span[contains(@class,'oxd-userdropdown-tab')]")))
+				.click();
+
+		wait.until(ExpectedConditions.elementToBeClickable(
+				By.xpath("//a[text()='Logout']"))).click();
+
+		// Closing browser
+		driver.quit();
+
+		w.close();
+		f1.close();
+		f.close();
+		System.out.println("Test execution completed.");
 	}
 }
